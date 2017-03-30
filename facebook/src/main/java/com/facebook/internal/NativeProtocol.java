@@ -301,8 +301,14 @@ public final class NativeProtocol {
         }
 
         private synchronized void fetchAvailableVersions(boolean force) {
-            if (force || availableVersions == null) {
-                availableVersions = fetchAllAvailableProtocolVersionsForAppInfo(this);
+            try {
+                if (force || availableVersions == null) {
+                    availableVersions = fetchAllAvailableProtocolVersionsForAppInfo(this);
+                }
+            } finally {
+                if (force) {
+                    protocolVersionsAsyncUpdating.set(false);
+                }
             }
         }
     }
@@ -853,12 +859,8 @@ public final class NativeProtocol {
         FacebookSdk.getExecutor().execute(new Runnable() {
             @Override
             public void run() {
-                try {
-                    for (NativeAppInfo appInfo : facebookAppInfoList) {
-                        appInfo.fetchAvailableVersions(true);
-                    }
-                } finally {
-                    protocolVersionsAsyncUpdating.set(false);
+                for (NativeAppInfo appInfo : facebookAppInfoList) {
+                    appInfo.fetchAvailableVersions(true);
                 }
             }
         });
